@@ -1,0 +1,30 @@
+# "PR Quality Gate" is a GitHub Actions workflow that conducts linting, unit tests, integration
+# tests, and builds your application whenever a pull request is made to the main or dev
+# branches. It runs on the latest Ubuntu environment and uses Node.js in its 18.x
+# version.
+
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run test:integration
+      - run: npm run build

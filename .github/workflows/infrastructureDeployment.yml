@@ -1,0 +1,69 @@
+# "Infrastructure Deployment" is a manually triggered GitHub Actions workflow for
+# deploying infrastructure changes using Terraform. Depending on the provided
+# inputs, it can both create (apply) and destroy infrastructure in different
+# environments such as dev, QA, or prod. The workflow includes initialization,
+# validation, and planning steps for Terraform, as well as conditional application and
+# destruction of your infrastructure.
+
+name: Infrastructure Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment name'
+        required: true
+        type: environment
+        default: dev # dev , qa, prod
+      deploy:
+        description: 'Terraform deploy'
+        required: true
+        type: boolean
+        default: false
+      destroy:
+        description: 'Terraform destroy'
+        required: false
+        type: boolean
+        default: false
+
+run-name: ${{ inputs.environment }}, branch-${{ github.ref_name }}, deploy-${{ inputs.deploy }}
+
+jobs:
+  env_deployment:
+    name: ${{ inputs.environment }}
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_LW_APPS_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: 'Terraform I|V|P digital core'
+        working-directory: ./infra/digital-core
+        run: |
+          terraform init -backend-config='./${{ inputs.environment }}.tfbackend' -backend-config='key=digital-core/${{ inputs.environment }}/digital-core.tfstate'
+          terraform validate
+          terraform plan -var 'environment=${{ inputs.environment }}' -var 'mongodbConfigValue=${{ secrets.MONGODB_CONFIG }}' -var 'hubspotConfigValue=${{ secrets.HUBSPOT_CONFIG }}' -var 'stripeWebhookConfigValue=${{ secrets.STRIPE_WEBHOOK_CONFIG }}' -var 'stripeWebhookConfigGbValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_GB }}' -var 'stripeWebhookConfigFrValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_FR }}' -var 'stripeWebhookConfigDeValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_DE }}' -var 'stripeWebhookConfigNlValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_NL }}' -var 'stripeWebhookConfigValue=${{ secrets.HUBSPOT_CONFIG }}' -var 'sapGigyaConfigValue=${{ secrets.SAP_GIGYA_CONFIG }}' -var 'plaidConfigValue=${{ secrets.PLAID_CONFIG }}' -var 'atcServiceConfigValue=${{ secrets.ATC_SERVICE_CONFIG }}' -var 'googleGeolocationConfigValue=${{ secrets.CONFIG_GOOGLE_GEOLOCATION }}' -var 'cmsConfigValue=${{ secrets.CONFIG_CMS }}' -var 'commonConfigValue=${{ secrets.COMMON_CONFIG }}' -var 'stripeApiKeyValue=${{ secrets.STRIPE_API_KEY }}' -var 'stripeApiKeyGbValue=${{ secrets.STRIPE_API_KEY_GB }}' -var 'stripeApiKeyFrValue=${{ secrets.STRIPE_API_KEY_FR }}' -var 'stripeApiKeyDeValue=${{ secrets.STRIPE_API_KEY_DE }}' -var 'stripeApiKeyNlValue=${{ secrets.STRIPE_API_KEY_NL }}' -var 'stripePublishableKeyValue=${{ secrets.STRIPE_PUBLISHABLE_KEY }}' -var 'stripePublishableKeyGbValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_GB }}' -var 'stripePublishableKeyFrValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_FR }}' -var 'stripePublishableKeyDeValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_DE }}' -var 'stripePublishableKeyNlValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_NL }}'
+
+      - name: 'Terraform apply digital core'
+        if: ${{ inputs.deploy == true }}
+        working-directory: ./infra/digital-core
+        run: |
+          terraform apply -var 'environment=${{ inputs.environment }}' -var 'mongodbConfigValue=${{ secrets.MONGODB_CONFIG }}' -var 'hubspotConfigValue=${{ secrets.HUBSPOT_CONFIG }}' -var 'stripeWebhookConfigValue=${{ secrets.STRIPE_WEBHOOK_CONFIG }}' -var 'stripeWebhookConfigGbValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_GB }}' -var 'stripeWebhookConfigFrValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_FR }}' -var 'stripeWebhookConfigDeValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_DE }}' -var 'stripeWebhookConfigNlValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_NL }}' -var 'sapGigyaConfigValue=${{ secrets.SAP_GIGYA_CONFIG }}' -var 'plaidConfigValue=${{ secrets.PLAID_CONFIG }}' -var 'atcServiceConfigValue=${{ secrets.ATC_SERVICE_CONFIG }}' -var 'googleGeolocationConfigValue=${{ secrets.CONFIG_GOOGLE_GEOLOCATION }}' -var 'cmsConfigValue=${{ secrets.CONFIG_CMS }}' -var 'commonConfigValue=${{ secrets.COMMON_CONFIG }}' -var 'stripeApiKeyValue=${{ secrets.STRIPE_API_KEY }}' -var 'stripeApiKeyGbValue=${{ secrets.STRIPE_API_KEY_GB }}' -var 'stripeApiKeyFrValue=${{ secrets.STRIPE_API_KEY_FR }}' -var 'stripeApiKeyDeValue=${{ secrets.STRIPE_API_KEY_DE }}' -var 'stripeApiKeyNlValue=${{ secrets.STRIPE_API_KEY_NL }}' -var 'stripePublishableKeyValue=${{ secrets.STRIPE_PUBLISHABLE_KEY }}' -var 'stripePublishableKeyGbValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_GB }}' -var 'stripePublishableKeyFrValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_FR }}' -var 'stripePublishableKeyDeValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_DE }}' -var 'stripePublishableKeyNlValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_NL }}' -auto-approve
+
+      - name: 'Terraform destroy digital core'
+        if: ${{ inputs.destroy == true }}
+        working-directory: ./infra/digital-core
+        run: |
+          terraform init -backend-config='./${{ inputs.environment }}.tfbackend' -backend-config='key=digital-core/${{ inputs.environment }}/digital-core.tfstate'
+          terraform validate
+          terraform apply -destroy -var 'environment=${{ inputs.environment }}' -var 'mongodbConfigValue=${{ secrets.MONGODB_CONFIG }}' -var 'hubspotConfigValue=${{ secrets.HUBSPOT_CONFIG }}' -var 'stripeWebhookConfigValue=${{ secrets.STRIPE_WEBHOOK_CONFIG }}' -var 'stripeWebhookConfigGbValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_GB }}' -var 'stripeWebhookConfigFrValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_FR }}' -var 'stripeWebhookConfigDeValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_DE }}' -var 'stripeWebhookConfigNlValue=${{ secrets.STRIPE_WEBHOOK_CONFIG_NL }}' -var 'sapGigyaConfigValue=${{ secrets.SAP_GIGYA_CONFIG }}' -var 'plaidConfigValue=${{ secrets.PLAID_CONFIG }}' -var 'atcServiceConfigValue=${{ secrets.ATC_SERVICE_CONFIG }}' -var 'googleGeolocationConfigValue=${{ secrets.CONFIG_GOOGLE_GEOLOCATION }}' -var 'cmsConfigValue=${{ secrets.CONFIG_CMS }}' -var 'commonConfigValue=${{ secrets.COMMON_CONFIG }}' -var 'stripeApiKeyValue=${{ secrets.STRIPE_API_KEY }}' -var 'stripeApiKeyGbValue=${{ secrets.STRIPE_API_KEY_GB }}' -var 'stripeApiKeyFrValue=${{ secrets.STRIPE_API_KEY_FR }}' -var 'stripeApiKeyDeValue=${{ secrets.STRIPE_API_KEY_DE }}' -var 'stripeApiKeyNlValue=${{ secrets.STRIPE_API_KEY_NL }}' -var 'stripePublishableKeyValue=${{ secrets.STRIPE_PUBLISHABLE_KEY }}' -var 'stripePublishableKeyGbValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_GB }}' -var 'stripePublishableKeyFrValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_FR }}' -var 'stripePublishableKeyDeValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_DE }}' -var 'stripePublishableKeyNlValue=${{ secrets.STRIPE_PUBLISHABLE_KEY_NL }}' -auto-approve

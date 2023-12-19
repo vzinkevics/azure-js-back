@@ -1,0 +1,22 @@
+{
+  "name": "",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prestart": "npm run build",
+    "start": "func start",
+    "test": "echo \"No tests yet...\"",
+    "deploy:stage": "func azure functionapp publish fa-products-service-ne-999 --slot non-prod",
+    "deploy:prod": "az functionapp deployment slot swap --name \"fa-products-service-ne-999\" --resource-group \"rg-product-service-sand-ne-002\" --slot non-prod --target-slot production",
+    "deploy": "npm run build && npm run deploy:stage && npm run deploy:prod"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@azure/functions": "^3.0.0",
+    "azure-functions-core-tools": "^4.x",
+    "@types/node": "18.x",
+    "typescript": "^4.0.0"
+  }
+}
