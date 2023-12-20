@@ -1,5 +1,0 @@
-# These owners will be the default owners for everything in the  repo.
-* @farafonoff @SergeyKovalchuk  @HDaliaksandr-khatsko @vzinkevics @smthspecial
-
-#These owners owns any file in the `/.github` directory in the root of your repository and any of its subdirectories.
-/.github/ @farafonoff @SergeyKovalchuk  @HDaliaksandr-khatsko @vzinkevics @smthspecial @RMaksimHD
