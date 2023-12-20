@@ -274,10 +274,3 @@ resource "azurerm_api_management_api_policy" "payment_service_api_policy" {
      </policies>
   XML
 }
-
-resource "azurerm_app_configuration" "app_config" {
-  name                = "appConfig104"
-  resource_group_name = azurerm_resource_group.product_service_rg.name
-  location            = azurerm_resource_group.product_service_rg.location
-  sku                 = "free"
-}
