@@ -11,9 +11,6 @@
     "deploy:directly": "func azure functionapp publish fa-products-service-ne-659",
     "deploy:stage": "func azure functionapp publish fa-products-service-ne-659 --slot non-prod"
   },
-  "dependencies": {
-    "@azure/app-configuration": "^1.5.0"
-  },
   "devDependencies": {
     "@azure/functions": "^3.0.0",
     "@types/node": "18.x",
