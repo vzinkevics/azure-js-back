@@ -1,4 +1,11 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
+import { AppConfigurationClient } from '@azure/app-configuration';
+import { getProductsContainer, getStocksContainer } from "../cosmos-db/handler";
+
+// // Create an App Config Client to interact with the service
+// const connection_string = process.env.AZURE_APP_CONFIG_CONNECTION_STRING;
+// const client = new AppConfigurationClient(connection_string);
+
 
 type Product = {
     id: string;
@@ -8,20 +15,26 @@ type Product = {
 }
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    context.log('HTTP trigger function processed a request.');
+    context.log('HTTP trigger function processed a request.', req);
 
-    const products: Product[] = [
-        { id: '101', title: 'Product101', description: 'good product', price: 100 },
-        { id: '102', title: 'Product102', description: 'bad product', price: 50 },
-        { id: '103', title: 'Product103', description: 'norm product', price: 530 },
-        { id: '104', title: 'Product104', description: 'better product', price: 535 },
-    ];
+    const products = (await getProductsContainer().items.readAll().fetchAll());
+    context.log('Product list', products);
 
-    context.log('Products:', products);
+    const stocks = (await getStocksContainer().items.readAll().fetchAll());
+    context.log('Stocks list', stocks);
+
+    // // Retrieve a configuration key
+    // const config = await client.getConfigurationSetting({ key: 'MY_AMAZING_CONFING' });
+    // context.log(`Config MY_AMAZING_CONFING value: ${config}`);
 
     context.res = {
-        // status: 200, /* Defaults to 200 */
-        body: products
+        body: products.resources?.map(product => ({
+            id: product.id,
+            title: product.title,
+            description: product.description,
+            price: product.price,
+            count: stocks?.resources?.find(stock => stock.product_id === product.id).count ?? 0,
+        } as Product))
     };
 };
 

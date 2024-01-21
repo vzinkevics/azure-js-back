@@ -215,6 +215,26 @@ resource "azurerm_api_management_api_operation" "get_product_operation" {
   }
 }
 
+resource "azurerm_api_management_api_operation" "get_total_products_operation" {
+  operation_id        = "get-total-products"
+  api_name            = azurerm_api_management_api.products_service_api.name
+  api_management_name = azurerm_api_management.products_service_apim.name
+  resource_group_name = azurerm_resource_group.rg_apim.name
+  display_name        = "Get Total Products"
+  method              = "GET"
+  url_template        = "/api/products/total"
+}
+
+resource "azurerm_api_management_api_operation" "create_product_operation" {
+  operation_id        = "create-product"
+  api_name            = azurerm_api_management_api.products_service_api.name
+  api_management_name = azurerm_api_management.products_service_apim.name
+  resource_group_name = azurerm_resource_group.rg_apim.name
+  display_name        = "Create Product"
+  method              = "POST"
+  url_template        = "/api/product"
+}
+
 data "azurerm_function_app_host_keys" "productsServiceHostKeys" {
   name                = azurerm_windows_function_app.products_service_new.name
   resource_group_name = azurerm_resource_group.product_service_rg.name
@@ -248,6 +268,7 @@ resource "azurerm_api_management_api_policy" "payment_service_api_policy" {
               </allowed-origins>
               <allowed-methods>
                   <method>GET</method>
+                  <method>POST</method>
               </allowed-methods>
               <allowed-headers>
                   <header>*</header>
@@ -273,4 +294,65 @@ resource "azurerm_api_management_api_policy" "payment_service_api_policy" {
       </on-error>
      </policies>
   XML
+}
+
+resource "azurerm_cosmosdb_account" "test_app" {
+  location            = "northeurope"
+  name                = "cos-app-sand-ne-889"
+  offer_type          = "Standard"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+  kind                = "GlobalDocumentDB"
+
+  consistency_policy {
+    consistency_level = "Eventual"
+  }
+
+  capabilities {
+    name = "EnableServerless"
+  }
+
+  geo_location {
+    failover_priority = 0
+    location          = "North Europe"
+  }
+}
+
+resource "azurerm_cosmosdb_sql_database" "products_app" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  name                = "products-db"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+}
+
+resource "azurerm_cosmosdb_sql_container" "products" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  database_name       = azurerm_cosmosdb_sql_database.products_app.name
+  name                = "products"
+  partition_key_path  = "/id"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+
+  # Cosmos DB supports TTL for the records
+  default_ttl = -1
+
+  indexing_policy {
+    excluded_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "stocks" {
+  account_name        = azurerm_cosmosdb_account.test_app.name
+  database_name       = azurerm_cosmosdb_sql_database.products_app.name
+  name                = "stocks"
+  partition_key_path  = "/product_id"
+  resource_group_name = azurerm_resource_group.product_service_rg.name
+
+  # Cosmos DB supports TTL for the records
+  default_ttl = -1
+
+  indexing_policy {
+    excluded_path {
+      path = "/*"
+    }
+  }
 }
