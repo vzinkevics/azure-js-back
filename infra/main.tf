@@ -102,6 +102,7 @@ resource "azurerm_windows_function_app" "products_service_new" {
   app_settings = {
     WEBSITE_CONTENTAZUREFILECONNECTIONSTRING = azurerm_storage_account.products_service_fa.primary_connection_string
     WEBSITE_CONTENTSHARE                     = azurerm_storage_share.products_service_storage_share.name
+    "ServiceBusConnection"                   = azurerm_servicebus_namespace.service_bus_namespace.default_primary_connection_string
   }
 
   # The app settings changes cause downtime on the Function App. e.g. with Azure Function App Slots
@@ -146,6 +147,7 @@ resource "azurerm_windows_function_app_slot" "products_service_slot" {
   app_settings = {
     WEBSITE_CONTENTAZUREFILECONNECTIONSTRING = azurerm_storage_account.products_service_fa.primary_connection_string
     WEBSITE_CONTENTSHARE                     = azurerm_storage_share.products_service_storage_share_slot.name
+    "ServiceBusConnection"                   = azurerm_servicebus_namespace.service_bus_namespace.default_primary_connection_string
   }
 
   # The app settings changes cause downtime on the Function App. e.g. with Azure Function App Slots
@@ -355,4 +357,57 @@ resource "azurerm_cosmosdb_sql_container" "stocks" {
       path = "/*"
     }
   }
+}
+
+
+resource "azurerm_resource_group" "service_bus_rg" {
+  name     = "rg-service-bus-sand-ne-003"
+  location = "northeurope"
+}
+
+resource "azurerm_servicebus_namespace" "service_bus_namespace" {
+  name                          = "service-bus-sand-ne-003"
+  location                      = azurerm_resource_group.service_bus_rg.location
+  resource_group_name           = azurerm_resource_group.service_bus_rg.name
+  sku                           = "Standard"
+  capacity                      = 0
+  public_network_access_enabled = true
+  minimum_tls_version           = "1.2"
+  zone_redundant                = false
+}
+
+resource "azurerm_servicebus_topic" "servicebus_topic" {
+  name                = "products-updates-topic"
+  namespace_id        = azurerm_servicebus_namespace.service_bus_namespace.id
+  enable_partitioning = true
+}
+
+resource "azurerm_servicebus_subscription" "sbs_product_created" {
+  name               = "product-created"
+  topic_id           = azurerm_servicebus_topic.servicebus_topic.id
+  max_delivery_count = 3
+  dead_lettering_on_filter_evaluation_error = true
+  dead_lettering_on_message_expiration      = true
+}
+
+resource "azurerm_servicebus_subscription_rule" "sbs_product_created_filter" {
+  name            = "product-created-filter"
+  subscription_id = azurerm_servicebus_subscription.sbs_product_created.id
+  filter_type     = "SqlFilter"
+  sql_filter      = "eventType = 'product-created'"
+}
+
+resource "azurerm_servicebus_subscription" "product_updated" {
+  name                                      = "product-updated"
+  topic_id                                  = azurerm_servicebus_topic.servicebus_topic.id
+  max_delivery_count                        = 3
+  dead_lettering_on_filter_evaluation_error = true
+  dead_lettering_on_message_expiration      = true
+}
+
+resource "azurerm_servicebus_subscription_rule" "product_updated_event_type_filter" {
+  name            = "product-updated-filter"
+  subscription_id = azurerm_servicebus_subscription.product_updated.id
+  filter_type     = "SqlFilter"
+  sql_filter      = "eventType = 'product-updated'"
 }

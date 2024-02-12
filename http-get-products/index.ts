@@ -33,7 +33,7 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
             title: product.title,
             description: product.description,
             price: product.price,
-            count: stocks?.resources?.find(stock => stock.product_id === product.id).count ?? 0,
+            count: stocks?.resources?.find(stock => stock.product_id === product.id)?.count ?? 0,
         } as Product))
     };
 };
