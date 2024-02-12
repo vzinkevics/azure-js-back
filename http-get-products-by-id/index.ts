@@ -1,4 +1,5 @@
 import { AzureFunction, Context, HttpRequest } from "@azure/functions"
+import { getProductsContainer, getStocksContainer } from "../cosmos-db/handler";
 
 type Product = {
     id: string;
@@ -8,20 +9,37 @@ type Product = {
 }
 
 const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-    context.log('HTTP trigger function processed a request.');
+    context.log('HTTP trigger function processed a request.', req);
 
-    const products: Product[] = [
-        { id: '101', title: 'Product101', description: 'good product', price: 100 },
-        { id: '102', title: 'Product102', description: 'bad product', price: 50 },
-        { id: '103', title: 'Product103', description: 'norm product', price: 530 },
-    ]
+    const products = await getProductsContainer().items
+        .query({
+            query: "SELECT * FROM c WHERE c.id = @id",
+            parameters: [{ name: "@id", value: req.params.productId }]
+        })
+        .fetchAll();
 
-    const product = products.find(product => product.id === req.params.productId);
+    const product = products.resources[0];
     context.log('Products:', product);
+
+    const stocks = await getStocksContainer().items
+        .query({
+            query: "SELECT * FROM c WHERE c.product_id = @id",
+            parameters: [{ name: "@id", value: req.params.productId }]
+        })
+        .fetchAll();
+
+    const stock = stocks.resources[0];
+    context.log('Stocks list', stock);
 
     context.res = {
         // status: 200, /* Defaults to 200 */
-        body: product
+        body: {
+            id: product.id,
+            title: product.title,
+            description: product.description,
+            price: product.price,
+            count: stock.count
+        } as Product
     };
 };
 
