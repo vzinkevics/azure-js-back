@@ -1,0 +1,15 @@
+{
+  "bindings": [
+    {
+      "name": "productupdates",
+      "type": "serviceBusTrigger",
+      "direction": "in",
+      "topicName": "products-updates-topic",
+      "subscriptionName": "product-created",
+      "connection": "ServiceBusConnectionString",
+      "autoComplete": true
+    }
+  ],
+  "disabled": false,
+  "scriptFile": "../dist/service-bus/index.js"
+}
